@@ -31,6 +31,10 @@
   // [END get_iid_token]
 }
 
+- (IBAction)handleNotificationToggleAtOnce:(UISwitch *)sender {}
+- (IBAction)handleNotificationToggleSeriallyOnMainThread:(UISwitch *)sender {}
+- (IBAction)handleNotificationToggleSeriallyOnBackgroundThread:(UISwitch *)sender {}
+
 - (IBAction)handleSubscribeTouch:(id)sender {
   // [START subscribe_topic]
   [[FIRMessaging messaging] subscribeToTopic:@"/topics/news"];

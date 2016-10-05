@@ -22,6 +22,8 @@ import FirebaseMessaging
 @objc(ViewController)
 class ViewController: UIViewController {
 
+  let testSubscriptionCount = 500
+
   override func viewDidLoad() {
     super.viewDidLoad()
   }
@@ -31,6 +33,82 @@ class ViewController: UIViewController {
     let token = FIRInstanceID.instanceID().token()
     print("InstanceID token: \(token!)")
     // [END get_iid_token]
+  }
+
+  @IBAction func handleNotificationToggleAtOnce(sender: UISwitch) {
+    if sender.on {
+      for i in 1..<testSubscriptionCount {
+        FIRMessaging.messaging().subscribeToTopic("/topics/news\(i)")
+      }
+      print("Subscribed to notifications")
+    } else {
+      for i in 1..<testSubscriptionCount {
+        FIRMessaging.messaging().unsubscribeFromTopic("/topics/news\(i)")
+      }
+      print("Unsubscribed from notifications")
+    }
+  }
+
+  @IBAction func handleNotificationToggleSeriallyOnMainThread(sender: UISwitch) {
+    if sender.on {
+      var previousOperation: NSOperation? = nil
+      for i in 1..<testSubscriptionCount {
+        let operation = NSBlockOperation() { FIRMessaging.messaging().subscribeToTopic("/topics/news\(i)") }
+        operation.queuePriority = .Low
+        if let previous = previousOperation {
+          operation.addDependency(previous)
+        }
+        NSOperationQueue.mainQueue().addOperation(operation)
+        previousOperation = operation
+      }
+      print("Subscribed to notifications")
+    } else {
+      var previousOperation: NSOperation? = nil
+      for i in 1..<testSubscriptionCount {
+        let operation = NSBlockOperation() { FIRMessaging.messaging().unsubscribeFromTopic("/topics/news\(i)") }
+        operation.queuePriority = .Low
+        if let previous = previousOperation {
+          operation.addDependency(previous)
+        }
+        NSOperationQueue.mainQueue().addOperation(operation)
+        previousOperation = operation
+      }
+      print("Unsubscribed from notifications")
+    }
+  }
+
+  let queue: NSOperationQueue = {
+    let queue = NSOperationQueue()
+    queue.qualityOfService = .Background
+    return queue
+  }()
+
+  @IBAction func handleNotificationToggleSeriallyOnBackgroundThread(sender: UISwitch) {
+    if sender.on {
+      var previousOperation: NSOperation? = nil
+      for i in 1..<100 {
+        let operation = NSBlockOperation() { FIRMessaging.messaging().subscribeToTopic("/topics/news\(i)") }
+        operation.queuePriority = .Low
+        if let previous = previousOperation {
+          operation.addDependency(previous)
+        }
+        queue.addOperation(operation)
+        previousOperation = operation
+      }
+      print("Subscribed to notifications")
+    } else {
+      var previousOperation: NSOperation? = nil
+      for i in 1..<100 {
+        let operation = NSBlockOperation() { FIRMessaging.messaging().unsubscribeFromTopic("/topics/news\(i)") }
+        operation.queuePriority = .Low
+        if let previous = previousOperation {
+          operation.addDependency(previous)
+        }
+        queue.addOperation(operation)
+        previousOperation = operation
+      }
+      print("Unsubscribed from notifications")
+    }
   }
 
   @IBAction func handleSubscribeTouch(sender: UIButton) {
